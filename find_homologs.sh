@@ -1,5 +1,5 @@
 #!/bin/bash
-	
+
 # Check if the correct number of arguments is provided
 if [ "$#" -ne 3 ]; then
     echo "Usage: $0 <query file> <subject file> <output file>"
@@ -16,11 +16,15 @@ output_file="$3"
 # alignment length (length), and lengths of the query (qlen) and subject (slen)
 blastn -query "$query_file" -subject "$subject_file" -outfmt "6 qseqid sseqid pident length qlen slen" -out temp_blast_output.txt
 
-# Filter perfect matches: 100% identity and alignment length equals query length
-awk '$3 == 100 && $4 == $5' temp_blast_output.txt > "$output_file"
+# Filter hits with >30% identity and >90% match length
+awk -v min_identity=30 -v min_match_length=0.90 '{
+    if ($3 > min_identity && $4 > min_match_length * $5) {
+        print
+    }
+}' temp_blast_output.txt > "$output_file"
 
-# Count the number of perfect matches
-perfect_match_count=$(wc -l < "$output_file")
+# Count the number of filtered matches
+match_count=$(wc -l < "$output_file")
 
-# Print the number of perfect matches to stdout
-echo "Number of perfect matches: $perfect_match_count"
+# Print the number of matches to stdout
+echo "Number of matches identified: $match_count"
